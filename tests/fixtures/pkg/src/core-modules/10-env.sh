@@ -1,0 +1,1 @@
+export SZCDF_FIXTURE_ENV=1

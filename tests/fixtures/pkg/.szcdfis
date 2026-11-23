@@ -1,0 +1,22 @@
+###############################################################################
+# Fixture install spec for szcdfi tests and CI.
+# Exercises every directive and the guard model. Run with `--guard bash` so the
+# expected result tree is identical on Windows, macOS and Linux.
+
+# A single file.
+COPY bin/hello.sh $CONFIG_ROOT/bin/hello.sh
+
+# A whole directory, non-recursively per direct child.
+COPYALL src/core-modules $CONFIG_ROOT/modules
+
+# A managed section prepended into a shell rc file.
+PREPENDTEXT src/core-entries/entry-bash.sh $HOME/.bashrc ENTRY-BASH
+
+# A managed section appended into another rc file.
+APPENDTEXT src/core-entries/entry-bash.sh $HOME/.profile ENTRY-BASH
+
+# Guarded: active for the bash installer, inert to every other.
+#@bash COPY bin/bash-only.sh $CONFIG_ROOT/bin/bash-only.sh
+
+# Guarded: inert unless the pwsh installer runs it.
+#@pwsh COPY bin/pwsh-only.ps1 $CONFIG_ROOT/bin/pwsh-only.ps1

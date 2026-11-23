@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "szcdfi"
+version = "0.1.0"
+description = "Cross-platform installer engine for the szcdf dotfiles framework."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Stephen Zhao" }]
+keywords = ["dotfiles", "installer", "szcdf", "shell", "configuration"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Installation/Setup",
+  "Topic :: Utilities",
+]
+# Pure stdlib. No third-party RUNTIME dependencies, by design (ADR-0003).
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/szcdf/szcdfi"
+Repository = "https://github.com/szcdf/szcdfi"
+Issues = "https://github.com/szcdf/szcdfi/issues"
+
+[project.scripts]
+szcdfi = "szcdfi.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/szcdfi"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/szcdfi", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
