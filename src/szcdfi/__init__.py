@@ -6,6 +6,6 @@ handling: UTF-8 without BOM, destination-EOL preservation, and the exact SZCDF
 section-marker format. See ADR-0003.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = ["__version__"]
