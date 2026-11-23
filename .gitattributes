@@ -1,0 +1,20 @@
+# Line endings are load-bearing for a dotfiles installer.
+#
+#   1. szcdfi's own tests write and compare BYTES to prove its text handling
+#      (UTF-8 without BOM, destination-EOL preservation). The fixture sources
+#      under tests/fixtures/ must therefore check out with stable, known
+#      endings on every machine, or a byte comparison would differ by platform.
+#   2. The fixture shell scripts (bin/*.sh) are POSIX scripts; a CRLF checkout
+#      would put a trailing \r on their shebang line.
+#   3. A .cmd / .bat launcher wants the opposite: older cmd.exe mis-parses
+#      LF-only batch files.
+#
+# So: LF everywhere, CRLF only for batch launchers. This governs what git
+# checks out for THIS repo's files; it does not change how the installer treats
+# a user's destination files at run time -- that is decided by the engine, whose
+# tests write bytes rather than relying on this.
+
+* text=auto eol=lf
+
+*.cmd text eol=crlf
+*.bat text eol=crlf

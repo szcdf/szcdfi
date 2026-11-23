@@ -1,0 +1,124 @@
+# pytest + coverage gate for this uv-managed repo, plus a cross-platform matrix.
+#
+# Per-repo behaviour lives in pyproject.toml, not here:
+#   - Python version:   requires-python / .python-version (uv picks it)
+#   - test paths/flags: [tool.pytest.ini_options]
+#   - what is measured: [tool.coverage.run] source
+#   - minimum coverage: [tool.coverage.report] fail_under (fails the pytest job)
+# pytest-cov is supplied with `uv run --with`, so a repo need not declare it.
+#
+# The cross-platform job is specific to szcdfi: it is a cross-platform installer
+# whose whole purpose is correct text handling (BOM, EOL) on every OS, so the
+# suite and a fixture install are run on Windows, macOS and Linux.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # sticky coverage comment on PRs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install project and dev dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run pytest with coverage
+        run: >-
+          uv run --with pytest-cov pytest
+          --cov
+          --cov-report=term
+          --cov-report=xml:coverage.xml
+          --cov-report=html:htmlcov
+          --junitxml=pytest-results.xml
+
+      - name: Write coverage summary
+        if: ${{ !cancelled() && hashFiles('.coverage') != '' }}
+        run: |
+          TOTAL=$(uv run --with pytest-cov coverage report --format=total --fail-under=0)
+          {
+            echo "## Coverage: ${TOTAL}%"
+            echo
+            uv run --with pytest-cov coverage report --format=markdown --fail-under=0
+          } > coverage-summary.md
+          cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() && hashFiles('.coverage') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+            pytest-results.xml
+          if-no-files-found: ignore
+
+      # Fork PRs get a read-only token, so only comment on same-repo PRs.
+      - name: Comment coverage on pull request
+        if: >-
+          ${{ !cancelled() &&
+              github.event_name == 'pull_request' &&
+              github.event.pull_request.head.repo.full_name == github.repository &&
+              hashFiles('coverage-summary.md') != '' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          path: coverage-summary.md
+
+  cross-platform:
+    name: suite (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync (project + dev)
+        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+
+      - name: Run unit tests
+        run: uv run --python ${{ matrix.python-version }} pytest
+
+      - name: Console script smoke test
+        run: uv run --python ${{ matrix.python-version }} szcdfi --version
+
+      - name: Install fixture manifest and assert result tree
+        run: uv run --python ${{ matrix.python-version }} python tests/ci_run.py

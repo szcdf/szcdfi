@@ -153,12 +153,50 @@ correct on every platform.
 
 ## Development
 
-Run the tests with `uv`:
+Run the tests with `uv` or the `Makefile`:
 
 ```sh
-uv run --group dev pytest
+make test
+```
+
+Run the tests with coverage:
+
+```sh
+make test-coverage
 ```
 
 The tests cover the directive engine, the guard parser, and the text-handling
 rules. They include regression tests for known parity bugs: a BOM, an ANSI read,
-CRLF normalization, and a glued END marker.
+CRLF normalization, and a glued END marker. CI runs the suite on Windows, macOS
+and Linux, and gates on a coverage minimum set in `pyproject.toml`.
+
+## Versioning and release
+
+The version has one source of truth: `__version__` in
+`src/szcdfi/__init__.py`. `bump-my-version` keeps it and the `[tool.bumpversion]`
+block in `pyproject.toml` in step. Three workflows run the release:
+
+- **Tests** (`tests.yml`): runs on every push and pull request.
+- **Bump Version** (`bumpversion.yml`): on a merge to `main`, it reads the merged
+  pull request's label to pick the bump part.
+  - `bumpversion=major`, `bumpversion=minor`, `bumpversion=patch`, or
+    `bumpversion=none`.
+  - No label means a patch bump.
+  - It commits the bump and pushes a `vX.Y.Z` tag.
+- **Publish to PyPI** (`publish.yml`): after a successful Bump Version run, it
+  publishes the one new tag. You can also run it by hand with an exact tag.
+  - It checks that the tag matches the version in the tree.
+  - It publishes with PyPI Trusted Publishing. It then makes a GitHub
+    pre-release.
+
+To make a release:
+
+1. Merge a pull request to `main` with the right `bumpversion=*` label.
+2. Bump Version tags the new version.
+3. Publish to PyPI uploads it.
+
+To bump the version by hand, for local use:
+
+```sh
+make bump-version PART=patch
+```
